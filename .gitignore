@@ -1,5 +1,6 @@
 .pioenvs
 .piolibdeps
+.pio/
 *.swp
 compile_*.sh
 .vscode/arduino.json
@@ -12,3 +13,10 @@ Makefile
 bin/
 cmake_install.cmake
 compile_commands.json
+.clangd
+
+.cache/
+.ninja_*
+build.ninja
+.cmake
+rules.ninja

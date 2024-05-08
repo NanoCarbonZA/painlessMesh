@@ -46,7 +46,6 @@ enum TimeType {
 class PackageInterface {
  public:
   virtual JsonObject addTo(JsonObject&& jsonObj) const = 0;
-  virtual size_t jsonObjectSize() const = 0;
 };
 
 /**
@@ -82,9 +81,6 @@ class Single : public PackageInterface {
     return jsonObj;
   }
 
-  size_t jsonObjectSize() const {
-    return JSON_OBJECT_SIZE(4) + round(1.1 * msg.length());
-  }
 };
 
 /**
@@ -102,9 +98,6 @@ class Broadcast : public Single {
     return jsonObj;
   }
 
-  size_t jsonObjectSize() const {
-    return JSON_OBJECT_SIZE(4) + round(1.1 * msg.length());
-  }
 };
 
 class NodeTree : public PackageInterface {
@@ -135,13 +128,13 @@ class NodeTree : public PackageInterface {
     }
   }
 
-  JsonObject addTo(JsonObject&& jsonObj) const {
+JsonObject addTo(JsonObject&& jsonObj) const {
     jsonObj["nodeId"] = nodeId;
     if (root) jsonObj["root"] = root;
     if (subs.size() > 0) {
-      JsonArray subsArr = jsonObj.createNestedArray("subs");
+      JsonArray subsArr = jsonObj["subs"].to<JsonArray>();
       for (auto&& s : subs) {
-        JsonObject subObj = subsArr.createNestedObject();
+        JsonObject subObj = subsArr.add<JsonObject>();
         subObj = s.addTo(std::move(subObj));
       }
     }
@@ -167,16 +160,6 @@ class NodeTree : public PackageInterface {
   bool operator!=(const NodeTree& b) const { return !this->operator==(b); }
 
   TSTRING toString(bool pretty = false);
-
-  size_t jsonObjectSize() const {
-    size_t base = 1;
-    if (root) ++base;
-    if (subs.size() > 0) ++base;
-    size_t size = JSON_OBJECT_SIZE(base);
-    if (subs.size() > 0) size += JSON_ARRAY_SIZE(subs.size());
-    for (auto&& s : subs) size += s.jsonObjectSize();
-    return size;
-  }
 
   void clear() {
     nodeId = 0;
@@ -224,16 +207,6 @@ class NodeSyncRequest : public NodeTree {
 
   bool operator!=(const NodeSyncRequest& b) const {
     return !this->operator==(b);
-  }
-
-  size_t jsonObjectSize() const {
-    size_t base = 4;
-    if (root) ++base;
-    if (subs.size() > 0) ++base;
-    size_t size = JSON_OBJECT_SIZE(base);
-    if (subs.size() > 0) size += JSON_ARRAY_SIZE(subs.size());
-    for (auto&& s : subs) size += s.jsonObjectSize();
-    return size;
   }
 };
 
@@ -316,18 +289,18 @@ class TimeSync : public PackageInterface {
   }
 
   JsonObject addTo(JsonObject&& jsonObj) const {
-    jsonObj["type"] = type;
-    jsonObj["dest"] = dest;
-    jsonObj["from"] = from;
-    auto msgObj = jsonObj.createNestedObject("msg");
-    msgObj["type"] = msg.type;
-    if (msg.type >= 1) msgObj["t0"] = msg.t0;
-    if (msg.type >= 2) {
-      msgObj["t1"] = msg.t1;
-      msgObj["t2"] = msg.t2;
+      jsonObj["type"] = type;
+      jsonObj["dest"] = dest;
+      jsonObj["from"] = from;
+      auto msgObj = jsonObj["msg"].to<JsonObject>();
+      msgObj["type"] = msg.type;
+      if (msg.type >= 1) msgObj["t0"] = msg.t0;
+      if (msg.type >= 2) {
+        msgObj["t1"] = msg.t1;
+        msgObj["t2"] = msg.t2;
+      }
+      return jsonObj;
     }
-    return jsonObj;
-  }
 
   /**
    * Create a reply to the current message with the new time set
@@ -348,9 +321,6 @@ class TimeSync : public PackageInterface {
     std::swap(from, dest);
   }
 
-  size_t jsonObjectSize() const {
-    return JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(4);
-  }
 };
 
 /**
@@ -383,8 +353,7 @@ class Variant {
    * @param json The json string containing a package
    */
   Variant(std::string json)
-      : jsonBuffer(JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(4) +
-                   2 * json.length()) {
+      : jsonBuffer() {
     error = deserializeJson(jsonBuffer, json,
                             DeserializationOption::NestingLimit(255));
     if (!error) jsonObj = jsonBuffer.as<JsonObject>();
@@ -396,7 +365,7 @@ class Variant {
    * @param json The json string containing a package
    * @param capacity The capacity to reserve for parsing the string
    */
-  Variant(std::string json, size_t capacity) : jsonBuffer(capacity) {
+  Variant(std::string json, size_t capacity) : jsonBuffer() {
     error = deserializeJson(jsonBuffer, json,
                             DeserializationOption::NestingLimit(255));
     if (!error) jsonObj = jsonBuffer.as<JsonObject>();
@@ -410,8 +379,7 @@ class Variant {
    * @param json The json string containing a package
    */
   Variant(String json)
-      : jsonBuffer(JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(4) +
-                   2 * json.length()) {
+      : jsonBuffer() {
     error = deserializeJson(jsonBuffer, json,
                             DeserializationOption::NestingLimit(255));
     if (!error) jsonObj = jsonBuffer.as<JsonObject>();
@@ -423,7 +391,7 @@ class Variant {
    * @param json The json string containing a package
    * @param capacity The capacity to reserve for parsing the string
    */
-  Variant(String json, size_t capacity) : jsonBuffer(capacity) {
+  Variant(String json, size_t capacity) : jsonBuffer() {
     error = deserializeJson(jsonBuffer, json,
                             DeserializationOption::NestingLimit(255));
     if (!error) jsonObj = jsonBuffer.as<JsonObject>();
@@ -432,7 +400,7 @@ class Variant {
   /**
    * Create Variant object from any package implementing PackageInterface
    */
-  Variant(const PackageInterface* pkg) : jsonBuffer(pkg->jsonObjectSize()) {
+  Variant(const PackageInterface* pkg) : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = pkg->addTo(std::move(jsonObj));
   }
@@ -442,7 +410,7 @@ class Variant {
    *
    * @param single The single package
    */
-  Variant(Single single) : jsonBuffer(single.jsonObjectSize()) {
+  Variant(Single single) : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = single.addTo(std::move(jsonObj));
   }
@@ -452,7 +420,7 @@ class Variant {
    *
    * @param broadcast The broadcast package
    */
-  Variant(Broadcast broadcast) : jsonBuffer(broadcast.jsonObjectSize()) {
+  Variant(Broadcast broadcast) : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = broadcast.addTo(std::move(jsonObj));
   }
@@ -462,7 +430,7 @@ class Variant {
    *
    * @param nodeTree The NodeTree
    */
-  Variant(NodeTree nodeTree) : jsonBuffer(nodeTree.jsonObjectSize()) {
+  Variant(NodeTree nodeTree) : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = nodeTree.addTo(std::move(jsonObj));
   }
@@ -473,7 +441,7 @@ class Variant {
    * @param nodeSyncReply The nodeSyncReply package
    */
   Variant(NodeSyncReply nodeSyncReply)
-      : jsonBuffer(nodeSyncReply.jsonObjectSize()) {
+      : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = nodeSyncReply.addTo(std::move(jsonObj));
   }
@@ -484,7 +452,7 @@ class Variant {
    * @param nodeSyncRequest The nodeSyncRequest package
    */
   Variant(NodeSyncRequest nodeSyncRequest)
-      : jsonBuffer(nodeSyncRequest.jsonObjectSize()) {
+      : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = nodeSyncRequest.addTo(std::move(jsonObj));
   }
@@ -494,7 +462,7 @@ class Variant {
    *
    * @param timeSync The timeSync package
    */
-  Variant(TimeSync timeSync) : jsonBuffer(timeSync.jsonObjectSize()) {
+  Variant(TimeSync timeSync) : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = timeSync.addTo(std::move(jsonObj));
   }
@@ -504,7 +472,7 @@ class Variant {
    *
    * @param timeDelay The timeDelay package
    */
-  Variant(TimeDelay timeDelay) : jsonBuffer(timeDelay.jsonObjectSize()) {
+  Variant(TimeDelay timeDelay) : jsonBuffer() {
     jsonObj = jsonBuffer.to<JsonObject>();
     jsonObj = timeDelay.addTo(std::move(jsonObj));
   }
@@ -585,7 +553,7 @@ class Variant {
   DeserializationError error = DeserializationError::Ok;
 
  private:
-  DynamicJsonDocument jsonBuffer;
+  JsonDocument jsonBuffer;
   JsonObject jsonObj;
 };
 

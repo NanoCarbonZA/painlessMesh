@@ -82,10 +82,6 @@ class PerformancePackage : public plugin::BroadcastPackage {
     jsonObj["hardware"] = hardware;
     return jsonObj;
   }
-
-  size_t jsonObjectSize() const {
-    return JSON_OBJECT_SIZE(4 + 5) + round(2 * (hardware.length()));
-  }
 };
 
 /// Numbers to track for each node we receive PerformancePackages from
@@ -117,26 +113,21 @@ class Track {
   }
 };
 
-/// Holds resulst from all the nodes
+/// Holds results from all the nodes
 class TrackMap : public protocol::PackageInterface,
                  public std::map<uint32_t, Track> {
  public:
   JsonObject addTo(JsonObject&& jsonObj) const {
     jsonObj["event"] = "performance";
     // Start array
-    auto jsonArr = jsonObj.createNestedArray("nodes");
+    auto jsonArr = jsonObj["nodes"].to<JsonArray>();
     // for each in map do
     for (auto&& pair : (*this)) {
-      auto obj = jsonArr.createNestedObject();
+      auto obj = jsonArr.add().to<JsonObject>();
       pair.second.addTo(obj);
     }
     return jsonObj;
   }  // namespace performance
-
-  size_t jsonObjectSize() const {
-    return JSON_OBJECT_SIZE(2 + 15) + JSON_ARRAY_SIZE(this->size()) +
-           this->size()*(JSON_OBJECT_SIZE(9) + 4 * 100);
-  }
 };  // namespace plugin
 
 template <class T>
