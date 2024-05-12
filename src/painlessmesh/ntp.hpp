@@ -32,6 +32,9 @@ class MeshTime {
    */
   uint32_t getNodeTime() { return micros() + timeOffset; }
 
+  uint32_t getNodeTimeMillis() { return (micros() + timeOffset)  / 1000ULL; }
+
+  uint32_t getNodeTimeSeconds() { return (micros() + timeOffset) / 1000000ULL; }
  protected:
   uint32_t timeOffset = 0;
 };
