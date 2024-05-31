@@ -1,7 +1,7 @@
 #ifndef _PAINLESS_MESH_ARDUINO_WIFI_HPP_
 #define _PAINLESS_MESH_ARDUINO_WIFI_HPP_
 
-#include "esp_wifi.h"
+// #include "esp_wifi.h"
 #include "painlessmesh/configuration.hpp"
 
 #include "painlessmesh/logger.hpp"
