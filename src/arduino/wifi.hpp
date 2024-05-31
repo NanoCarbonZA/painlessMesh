@@ -1,6 +1,7 @@
 #ifndef _PAINLESS_MESH_ARDUINO_WIFI_HPP_
 #define _PAINLESS_MESH_ARDUINO_WIFI_HPP_
 
+#include "esp_wifi.h"
 #include "painlessmesh/configuration.hpp"
 
 #include "painlessmesh/logger.hpp"
@@ -252,7 +253,7 @@ class Mesh : public painlessmesh::Mesh<Connection> {
             this->semaphoreGive();
           }
         },
-#if ESP_ARDUINO_VERSION_MAJOR >= 2 
+#if ESP_ARDUINO_VERSION_MAJOR >= 2
         WiFiEvent_t::ARDUINO_EVENT_WIFI_SCAN_DONE);
 #else
         WiFiEvent_t::SYSTEM_EVENT_SCAN_DONE);
@@ -266,12 +267,11 @@ class Mesh : public painlessmesh::Mesh<Connection> {
             this->semaphoreGive();
           }
         },
-#if ESP_ARDUINO_VERSION_MAJOR >= 2 
+#if ESP_ARDUINO_VERSION_MAJOR >= 2
         WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_START);
 #else
         WiFiEvent_t::SYSTEM_EVENT_STA_START);
 #endif
-
 
     eventSTADisconnectedHandler = WiFi.onEvent(
         [this](WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -283,7 +283,7 @@ class Mesh : public painlessmesh::Mesh<Connection> {
             this->semaphoreGive();
           }
         },
-#if ESP_ARDUINO_VERSION_MAJOR >= 2 
+#if ESP_ARDUINO_VERSION_MAJOR >= 2
         WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 #else
         WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
@@ -298,7 +298,7 @@ class Mesh : public painlessmesh::Mesh<Connection> {
             this->semaphoreGive();
           }
         },
-#if ESP_ARDUINO_VERSION_MAJOR >= 2 
+#if ESP_ARDUINO_VERSION_MAJOR >= 2
         WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
 #else
         WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
